@@ -16,6 +16,9 @@ interface MovieData {
   title: string;
   year: string;
   poster?: string;
+  content_type: 'movie' | 'tv_series';
+  overview?: string;
+  genre?: string;
 }
 
 interface FormData {
@@ -27,6 +30,9 @@ interface FormData {
   herReview: string;
   hisReview: string;
   photos: File[];
+  watchStatus: 'completed' | 'partial' | 'continued';
+  watchProgress: number;
+  parentDateId?: number;
 }
 
 export const StitchDesign = (): JSX.Element => {
@@ -39,6 +45,9 @@ export const StitchDesign = (): JSX.Element => {
     herReview: "",
     hisReview: "",
     photos: [],
+    watchStatus: 'completed',
+    watchProgress: 100,
+    parentDateId: undefined,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState<string>("");
@@ -89,13 +98,17 @@ export const StitchDesign = (): JSX.Element => {
         movie_title: formData.movie.title,
         movie_year: formData.movie.year,
         movie_poster: formData.movie.poster || null,
+        content_type: formData.movie.content_type || 'movie',
         date_watched: formData.date.toISOString(),
         location: formData.location,
         user1_rating: formData.herRating,
         user2_rating: formData.hisRating,
         user1_review: formData.herReview,
         user2_review: formData.hisReview,
-        photos: photoData
+        photos: photoData,
+        watch_status: formData.watchStatus,
+        watch_progress: formData.watchProgress,
+        parent_date_id: formData.parentDateId
       };
 
       const response = await fetch('/api/movie-dates', {
@@ -120,6 +133,9 @@ export const StitchDesign = (): JSX.Element => {
           herReview: "",
           hisReview: "",
           photos: [],
+          watchStatus: 'completed',
+          watchProgress: 100,
+          parentDateId: undefined,
         });
         
         // Clear success message after 3 seconds
@@ -154,6 +170,12 @@ export const StitchDesign = (): JSX.Element => {
               <MainFormSection 
                 selectedMovie={formData.movie}
                 onMovieSelect={(movie) => updateFormData({ movie })}
+                watchStatus={formData.watchStatus}
+                watchProgress={formData.watchProgress}
+                parentDateId={formData.parentDateId}
+                onWatchStatusChange={(watchStatus) => updateFormData({ watchStatus })}
+                onWatchProgressChange={(watchProgress) => updateFormData({ watchProgress })}
+                onParentDateChange={(parentDateId) => updateFormData({ parentDateId })}
               />
               <UserInputSection />
               <PhotoUploadSection 
