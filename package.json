@@ -24,6 +24,7 @@
     "react-day-picker": "9.3.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.8.1",
+    "scheduler": "^0.26.0",
     "tailwind-merge": "2.5.4"
   },
   "devDependencies": {
