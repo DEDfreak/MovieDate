@@ -7,20 +7,19 @@ const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 // OMDb API configuration
 const OMDB_API_KEY = 'a47ebd1f';
 
-interface SearchResult {
+interface PopularItem {
   id: string;
   title: string;
   year: string;
   poster?: string;
   content_type: 'movie' | 'tv_series';
   overview?: string;
+  rating?: string;
   genre?: string;
-  imdb_id?: string;
-  tmdb_id?: string;
 }
 
-// Fallback data when APIs are unavailable
-const fallbackContent: SearchResult[] = [
+// Fallback popular content
+const fallbackPopular: PopularItem[] = [
   {
     id: 'tt0111161',
     title: 'The Shawshank Redemption',
@@ -28,28 +27,48 @@ const fallbackContent: SearchResult[] = [
     poster: 'https://m.media-amazon.com/images/M/MV5BNDE3ODcxYzMtY2YzZC00NmNlLWJiNDMtZDViZWM2MzIxZDYwXkEyXkFqcGdeQXVyNjAwNDUxODI@._V1_SX300.jpg',
     content_type: 'movie',
     overview: 'Two imprisoned men bond over a number of years, finding solace and eventual redemption through acts of common decency.',
-    genre: 'Drama',
-    imdb_id: 'tt0111161'
+    rating: '9.3',
+    genre: 'Drama'
   },
   {
-    id: 'tv_breaking_bad',
+    id: 'tv_1396',
     title: 'Breaking Bad',
     year: '2008',
     poster: 'https://image.tmdb.org/t/p/w500/3xnWaLQjelJDDF7LT1WBo6f4BRe.jpg',
     content_type: 'tv_series',
     overview: 'A high school chemistry teacher diagnosed with inoperable lung cancer turns to manufacturing and selling methamphetamine.',
-    genre: 'Crime, Drama, Thriller',
-    tmdb_id: '1396'
+    rating: '9.5',
+    genre: 'Crime, Drama, Thriller'
   },
   {
-    id: 'tv_stranger_things',
+    id: 'tv_66732',
     title: 'Stranger Things',
     year: '2016',
     poster: 'https://image.tmdb.org/t/p/w500/x2LSRK2Cm7MZhjluni1msVJ3wDF.jpg',
     content_type: 'tv_series',
     overview: 'When a young boy disappears, his mother, a police chief and his friends must confront terrifying supernatural forces.',
-    genre: 'Drama, Fantasy, Horror',
-    tmdb_id: '66732'
+    rating: '8.7',
+    genre: 'Drama, Fantasy, Horror'
+  },
+  {
+    id: 'tt0068646',
+    title: 'The Godfather',
+    year: '1972',
+    poster: 'https://m.media-amazon.com/images/M/MV5BM2MyNjYxNmUtYTAwNi00MTYxLWJmNWYtYzZlODY3ZTk3OTFlXkEyXkFqcGdeQXVyNzUwNzE@._V1_SX300.jpg',
+    content_type: 'movie',
+    overview: 'The aging patriarch of an organized crime dynasty transfers control of his empire to his reluctant son.',
+    rating: '9.2',
+    genre: 'Crime, Drama'
+  },
+  {
+    id: 'tv_1399',
+    title: 'Game of Thrones',
+    year: '2011',
+    poster: 'https://image.tmdb.org/t/p/w500/1XS1oqL89opfnbLl8WnZY1O1uJx.jpg',
+    content_type: 'tv_series',
+    overview: 'Seven noble families fight for control of the mythical land of Westeros.',
+    rating: '9.3',
+    genre: 'Drama, Fantasy, Adventure'
   }
 ];
 
@@ -63,23 +82,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).end();
   }
 
-  const { q, type = 'all' } = req.query;
-
-  if (!q || typeof q !== 'string' || q.trim().length === 0) {
-    return res.status(400).json({
-      error: 'Missing or invalid query parameter: q',
-      message: 'Please provide a valid search query'
+  if (req.method !== 'GET') {
+    return res.status(405).json({
+      error: 'Method not allowed',
+      message: 'Only GET method is supported'
     });
   }
 
-  try {
-    const results: SearchResult[] = [];
-    const query = q.trim();
+  const { type = 'all', limit = 20 } = req.query;
+  const limitNum = Math.min(parseInt(limit as string) || 20, 50);
 
-    // Search movies using OMDb if type includes movies
+  try {
+    const results: PopularItem[] = [];
+
+    // Fetch popular movies if requested
     if (type === 'all' || type === 'movie') {
       try {
-        const movieUrl = `http://www.omdbapi.com/?apikey=${OMDB_API_KEY}&s=${encodeURIComponent(query)}&type=movie`;
+        // For movies, we could use TMDb popular movies endpoint, but OMDb doesn't have a "popular" endpoint
+        // So we'll use some well-known popular movies or TMDb popular endpoint
+        const movieUrl = `${TMDB_BASE_URL}/movie/popular?api_key=${TMDB_API_KEY}&page=1`;
         
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 8000);
@@ -87,7 +108,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const movieResponse = await fetch(movieUrl, {
           method: 'GET',
           headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
             'Accept': 'application/json',
           },
           signal: controller.signal,
@@ -98,27 +118,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (movieResponse.ok) {
           const movieData = await movieResponse.json();
           
-          if (movieData.Search && Array.isArray(movieData.Search)) {
-            const movieResults = movieData.Search.map((movie: any) => ({
-              id: movie.imdbID,
-              title: movie.Title,
-              year: movie.Year,
-              poster: movie.Poster !== 'N/A' ? movie.Poster : undefined,
+          if (movieData.results && Array.isArray(movieData.results)) {
+            const movieResults = movieData.results.slice(0, Math.floor(limitNum / 2)).map((movie: any) => ({
+              id: movie.id.toString(),
+              title: movie.title,
+              year: movie.release_date ? movie.release_date.split('-')[0] : '',
+              poster: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : undefined,
               content_type: 'movie' as const,
-              imdb_id: movie.imdbID
+              overview: movie.overview,
+              rating: movie.vote_average ? movie.vote_average.toFixed(1) : undefined,
+              genre: 'Movie'
             }));
             results.push(...movieResults);
           }
         }
       } catch (error) {
-        console.error('OMDb API error:', error);
+        console.error('TMDb movies error:', error);
       }
     }
 
-    // Search TV series using TMDb if type includes TV
+    // Fetch popular TV series if requested
     if (type === 'all' || type === 'tv_series') {
       try {
-        const tvUrl = `${TMDB_BASE_URL}/search/tv?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(query)}`;
+        const tvUrl = `${TMDB_BASE_URL}/tv/popular?api_key=${TMDB_API_KEY}&page=1`;
         
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 8000);
@@ -137,75 +159,56 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           const tvData = await tvResponse.json();
           
           if (tvData.results && Array.isArray(tvData.results)) {
-            const tvResults = tvData.results.slice(0, 10).map((show: any) => ({
+            const tvResults = tvData.results.slice(0, Math.floor(limitNum / 2)).map((show: any) => ({
               id: `tv_${show.id}`,
               title: show.name,
               year: show.first_air_date ? show.first_air_date.split('-')[0] : '',
               poster: show.poster_path ? `https://image.tmdb.org/t/p/w500${show.poster_path}` : undefined,
               content_type: 'tv_series' as const,
               overview: show.overview,
-              genre: show.genre_ids ? 'TV Series' : undefined,
-              tmdb_id: show.id.toString()
+              rating: show.vote_average ? show.vote_average.toFixed(1) : undefined,
+              genre: 'TV Series'
             }));
             results.push(...tvResults);
           }
-        } else {
-          // If TMDb fails, fall back to our sample data
-          const tvFallback = fallbackContent.filter(item => 
-            item.content_type === 'tv_series' && 
-            item.title.toLowerCase().includes(query.toLowerCase())
-          );
-          results.push(...tvFallback);
         }
       } catch (error) {
-        console.error('TMDb API error:', error);
+        console.error('TMDb TV error:', error);
       }
     }
 
-    // If no results from APIs, use filtered fallback data
+    // If no results from APIs, use fallback data
     if (results.length === 0) {
-      const fallbackResults = fallbackContent.filter(item => {
-        const matchesQuery = item.title.toLowerCase().includes(query.toLowerCase()) ||
-                           item.year.includes(query);
-        const matchesType = type === 'all' || item.content_type === type;
-        return matchesQuery && matchesType;
-      });
+      const fallbackResults = fallbackPopular.filter(item => {
+        return type === 'all' || item.content_type === type;
+      }).slice(0, limitNum);
       
       results.push(...fallbackResults);
     }
 
-    // Sort results: movies first, then TV series, then by relevance
-    results.sort((a, b) => {
-      if (a.content_type !== b.content_type) {
-        return a.content_type === 'movie' ? -1 : 1;
-      }
-      return a.title.toLowerCase().indexOf(query.toLowerCase()) - 
-             b.title.toLowerCase().indexOf(query.toLowerCase());
-    });
+    // Shuffle and limit results
+    const shuffledResults = results
+      .sort(() => Math.random() - 0.5)
+      .slice(0, limitNum);
 
     return res.status(200).json({
-      results: results.slice(0, 20), // Limit to 20 results
-      total: results.length,
-      query: query,
+      popular: shuffledResults,
+      total: shuffledResults.length,
       type: type,
-      fallback: results.some(r => fallbackContent.includes(r))
+      fallback: results.length === 0 || results.some(r => fallbackPopular.includes(r as any))
     });
 
   } catch (error: any) {
-    console.error('Content search error:', error);
+    console.error('Popular content error:', error);
     
     // Fallback to sample data
-    const fallbackResults = fallbackContent.filter(item => {
-      const matchesQuery = item.title.toLowerCase().includes(q.trim().toLowerCase()) ||
-                         item.year.includes(q.trim());
-      const matchesType = type === 'all' || item.content_type === type;
-      return matchesQuery && matchesType;
-    });
+    const fallbackResults = fallbackPopular.filter(item => {
+      return type === 'all' || item.content_type === type;
+    }).slice(0, limitNum);
 
     return res.status(200).json({
-      results: fallbackResults,
+      popular: fallbackResults,
       total: fallbackResults.length,
-      query: q.trim(),
       type: type,
       fallback: true,
       message: 'Using sample data - external APIs temporarily unavailable'
