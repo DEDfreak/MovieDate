@@ -144,7 +144,20 @@ export const MainFormSection = ({
         const response = await fetch(`/api/tv-details?id=${encodeURIComponent(movie.id)}`);
         const data = await response.json();
         if (response.ok) {
-          setMovieDetails(data.series);
+          // Merge detailed data with original search data to preserve poster and other info
+          const mergedDetails = {
+            ...data.series,
+            // Preserve poster from search results if detailed API doesn't have one
+            poster: data.series.poster || movie.poster,
+            // Preserve overview from search results if detailed API doesn't have one
+            overview: data.series.overview || movie.overview,
+            // Preserve genre from search results if detailed API doesn't have one
+            genre: data.series.genre || movie.genre,
+            // Ensure we have the original title and year from search
+            title: data.series.title || movie.title,
+            year: data.series.year || movie.year
+          };
+          setMovieDetails(mergedDetails);
         } else {
           console.error('Failed to fetch TV series details:', data.error);
           setMovieDetails(movie); // Fallback to basic series data
