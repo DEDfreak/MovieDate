@@ -4,7 +4,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 let movieDates: any[] = [];
 let dateIdCounter = 1;
 
-const handler = async (req: VercelRequest, res: VercelResponse) => {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -165,6 +165,4 @@ const handler = async (req: VercelRequest, res: VercelResponse) => {
       details: error.message
     });
   }
-};
-
-export default handler; 
+} 

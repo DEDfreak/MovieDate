@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-const handler = async (req: VercelRequest, res: VercelResponse) => {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Enable CORS for frontend requests
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -116,6 +116,4 @@ const handler = async (req: VercelRequest, res: VercelResponse) => {
       imdbID: id
     });
   }
-};
-
-export default handler; 
+} 
