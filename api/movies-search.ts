@@ -24,7 +24,7 @@ const mockMovieResults = [
   }
 ];
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+const handler = async (req: VercelRequest, res: VercelResponse) => {
   // Enable CORS for frontend requests
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -147,4 +147,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       message: 'Using sample data - external movie API temporarily unavailable'
     });
   }
-} 
+};
+
+export default handler; 

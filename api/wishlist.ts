@@ -4,7 +4,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 let wishlistItems: any[] = [];
 let wishlistIdCounter = 1;
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+const handler = async (req: VercelRequest, res: VercelResponse) => {
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -187,4 +187,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       details: error.message
     });
   }
-} 
+};
+
+export default handler; 
