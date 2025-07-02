@@ -26,6 +26,7 @@ interface FormData {
   hisRating: number;
   herReview: string;
   hisReview: string;
+  photos: File[];
 }
 
 export const StitchDesign = (): JSX.Element => {
@@ -37,6 +38,7 @@ export const StitchDesign = (): JSX.Element => {
     hisRating: 4,
     herReview: "",
     hisReview: "",
+    photos: [],
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState<string>("");
@@ -64,6 +66,24 @@ export const StitchDesign = (): JSX.Element => {
     setSubmitMessage("");
 
     try {
+      // Convert photos to base64 for API (in production, upload to cloud storage)
+      const photoData = await Promise.all(
+        formData.photos.map(async (photo) => {
+          return new Promise<{filename: string, data: string, size: number, type: string}>((resolve) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+              resolve({
+                filename: photo.name,
+                data: reader.result as string,
+                size: photo.size,
+                type: photo.type
+              });
+            };
+            reader.readAsDataURL(photo);
+          });
+        })
+      );
+
       const payload = {
         movie_id: formData.movie.id,
         movie_title: formData.movie.title,
@@ -75,7 +95,7 @@ export const StitchDesign = (): JSX.Element => {
         user2_rating: formData.hisRating,
         user1_review: formData.herReview,
         user2_review: formData.hisReview,
-        photos: []
+        photos: photoData
       };
 
       const response = await fetch('/api/movie-dates', {
@@ -99,6 +119,7 @@ export const StitchDesign = (): JSX.Element => {
           hisRating: 4,
           herReview: "",
           hisReview: "",
+          photos: [],
         });
         
         // Clear success message after 3 seconds
@@ -148,44 +169,14 @@ export const StitchDesign = (): JSX.Element => {
                 onHisRatingChange={(hisRating) => updateFormData({ hisRating })}
               />
 
-              {/* Reviews Section */}
-              <div className="flex flex-col gap-4 px-4 py-3 max-w-[800px]">
-                <h2 className="[font-family:'Plus_Jakarta_Sans',Helvetica] font-bold text-white text-lg leading-[23px] mb-2">
-                  Your Reviews
-                </h2>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Card className="bg-[#472326] border-[#663335]">
-                    <CardContent className="p-4">
-                      <Label className="font-medium text-white text-base leading-6 font-['Plus_Jakarta_Sans',Helvetica] mb-3 block">
-                        Her Review
-                      </Label>
-                      <Textarea
-                        value={formData.herReview}
-                        onChange={(e) => updateFormData({ herReview: e.target.value })}
-                        className="min-h-32 bg-[#3d1f22] border-[#663335] rounded-lg text-[#c69193] resize-none placeholder:text-[#a08082] focus-visible:ring-1 focus-visible:ring-[#e82833] focus-visible:ring-offset-0"
-                        placeholder="Enter her review"
-                      />
-                    </CardContent>
-                  </Card>
-                  
-                  <Card className="bg-[#472326] border-[#663335]">
-                    <CardContent className="p-4">
-                      <Label className="font-medium text-white text-base leading-6 font-['Plus_Jakarta_Sans',Helvetica] mb-3 block">
-                        His Review
-                      </Label>
-                      <Textarea
-                        value={formData.hisReview}
-                        onChange={(e) => updateFormData({ hisReview: e.target.value })}
-                        className="min-h-32 bg-[#3d1f22] border-[#663335] rounded-lg text-[#c69193] resize-none placeholder:text-[#a08082] focus-visible:ring-1 focus-visible:ring-[#e82833] focus-visible:ring-offset-0"
-                        placeholder="Enter his review"
-                      />
-                    </CardContent>
-                  </Card>
-                </div>
-              </div>
-
-              <ReviewsSection />
+              <ReviewsSection 
+                user1Review={formData.herReview}
+                user2Review={formData.hisReview}
+                onUser1ReviewChange={(herReview) => updateFormData({ herReview })}
+                onUser2ReviewChange={(hisReview) => updateFormData({ hisReview })}
+                photos={formData.photos}
+                onPhotosChange={(photos) => updateFormData({ photos })}
+              />
 
               {/* Submit Message */}
               {submitMessage && (

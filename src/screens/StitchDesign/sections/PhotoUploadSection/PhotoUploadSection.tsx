@@ -1,6 +1,6 @@
 import { format } from "date-fns";
-import { CalendarIcon } from "lucide-react";
-import React from "react";
+import { CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
+import React, { useState } from "react";
 import { Button } from "../../../../components/ui/button";
 import { Calendar } from "../../../../components/ui/calendar";
 import { Input } from "../../../../components/ui/input";
@@ -17,6 +17,158 @@ interface PhotoUploadSectionProps {
   onDateChange: (date: Date | undefined) => void;
   onLocationChange: (location: string) => void;
 }
+
+// Custom Calendar with Year/Month Navigation
+const EnhancedCalendar = ({ 
+  selected, 
+  onSelect 
+}: { 
+  selected: Date | undefined; 
+  onSelect: (date: Date | undefined) => void; 
+}) => {
+  const [currentMonth, setCurrentMonth] = useState(selected ? selected.getMonth() : new Date().getMonth());
+  const [currentYear, setCurrentYear] = useState(selected ? selected.getFullYear() : new Date().getFullYear());
+
+  const months = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
+
+  const years = Array.from({ length: 81 }, (_, i) => 1950 + i); // 1950 to 2030
+
+  const getDaysInMonth = (month: number, year: number) => {
+    return new Date(year, month + 1, 0).getDate();
+  };
+
+  const getFirstDayOfMonth = (month: number, year: number) => {
+    return new Date(year, month, 1).getDay();
+  };
+
+  const handleDateClick = (day: number) => {
+    const newDate = new Date(currentYear, currentMonth, day);
+    onSelect(newDate);
+  };
+
+  const isToday = (day: number) => {
+    const today = new Date();
+    return today.getDate() === day && 
+           today.getMonth() === currentMonth && 
+           today.getFullYear() === currentYear;
+  };
+
+  const isSelected = (day: number) => {
+    if (!selected) return false;
+    return selected.getDate() === day && 
+           selected.getMonth() === currentMonth && 
+           selected.getFullYear() === currentYear;
+  };
+
+  const navigateMonth = (direction: 'prev' | 'next') => {
+    if (direction === 'prev') {
+      if (currentMonth === 0) {
+        setCurrentMonth(11);
+        setCurrentYear(currentYear - 1);
+      } else {
+        setCurrentMonth(currentMonth - 1);
+      }
+    } else {
+      if (currentMonth === 11) {
+        setCurrentMonth(0);
+        setCurrentYear(currentYear + 1);
+      } else {
+        setCurrentMonth(currentMonth + 1);
+      }
+    }
+  };
+
+  const daysInMonth = getDaysInMonth(currentMonth, currentYear);
+  const firstDay = getFirstDayOfMonth(currentMonth, currentYear);
+  const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+  const emptyDays = Array.from({ length: firstDay }, (_, i) => null);
+
+  return (
+    <div className="p-3 bg-[#472326]">
+      {/* Header with dropdowns and navigation */}
+      <div className="flex items-center justify-between mb-4">
+        <button
+          onClick={() => navigateMonth('prev')}
+          className="h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 text-white border border-[#663335] hover:bg-[#663335] rounded flex items-center justify-center"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+
+        <div className="flex gap-2">
+          {/* Month Dropdown */}
+          <select
+            value={currentMonth}
+            onChange={(e) => setCurrentMonth(parseInt(e.target.value))}
+            className="px-2 py-1 text-sm bg-[#663335] border border-[#8a4a4d] rounded text-white hover:bg-[#7a3f42] focus:outline-none focus:ring-1 focus:ring-[#e82833]"
+          >
+            {months.map((month, index) => (
+              <option key={index} value={index} className="bg-[#472326] text-white">
+                {month}
+              </option>
+            ))}
+          </select>
+
+          {/* Year Dropdown */}
+          <select
+            value={currentYear}
+            onChange={(e) => setCurrentYear(parseInt(e.target.value))}
+            className="px-2 py-1 text-sm bg-[#663335] border border-[#8a4a4d] rounded text-white hover:bg-[#7a3f42] focus:outline-none focus:ring-1 focus:ring-[#e82833]"
+          >
+            {years.map((year) => (
+              <option key={year} value={year} className="bg-[#472326] text-white">
+                {year}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <button
+          onClick={() => navigateMonth('next')}
+          className="h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 text-white border border-[#663335] hover:bg-[#663335] rounded flex items-center justify-center"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </button>
+      </div>
+
+      {/* Days of week header */}
+      <div className="grid grid-cols-7 gap-1 mb-2">
+        {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((day) => (
+          <div key={day} className="text-[#c69193] text-center text-xs font-normal py-1">
+            {day}
+          </div>
+        ))}
+      </div>
+
+      {/* Calendar grid */}
+      <div className="grid grid-cols-7 gap-1">
+        {/* Empty cells for days before month starts */}
+        {emptyDays.map((_, index) => (
+          <div key={`empty-${index}`} className="h-8 w-8"></div>
+        ))}
+        
+        {/* Days of the month */}
+        {days.map((day) => (
+          <button
+            key={day}
+            onClick={() => handleDateClick(day)}
+            className={`h-8 w-8 p-0 font-normal rounded-md transition-colors text-sm ${
+              isSelected(day)
+                ? 'bg-[#e82833] text-white hover:bg-[#c62229]'
+                : isToday(day)
+                ? 'bg-[#663335] text-white font-bold'
+                : 'text-[#c69193] hover:bg-[#663335] hover:text-white'
+            }`}
+          >
+            {day}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+};
 
 export const PhotoUploadSection = ({ 
   date, 
@@ -55,33 +207,7 @@ export const PhotoUploadSection = ({
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0 bg-[#472326] border-[#663335]" align="start">
-            <Calendar
-              mode="single"
-              selected={date}
-              onSelect={onDateChange}
-              initialFocus
-              className="bg-[#472326]"
-              classNames={{
-                months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
-                month: "space-y-4",
-                caption: "flex justify-center pt-1 relative items-center text-white",
-                caption_label: "text-sm font-medium text-white",
-                nav: "space-x-1 flex items-center",
-                nav_button: "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 text-white border border-[#663335] hover:bg-[#663335]",
-                nav_button_previous: "absolute left-1",
-                nav_button_next: "absolute right-1",
-                table: "w-full border-collapse space-y-1",
-                head_row: "flex",
-                head_cell: "text-[#c69193] rounded-md w-8 font-normal text-[0.8rem]",
-                row: "flex w-full mt-2",
-                cell: "relative p-0 text-center text-sm focus-within:relative focus-within:z-20",
-                day: "h-8 w-8 p-0 font-normal text-[#c69193] hover:bg-[#663335] hover:text-white rounded-md transition-colors",
-                day_selected: "bg-[#e82833] text-white hover:bg-[#c62229] hover:text-white focus:bg-[#e82833] focus:text-white",
-                day_today: "bg-[#663335] text-white font-bold",
-                day_outside: "text-[#a08082] opacity-50",
-                day_disabled: "text-[#a08082] opacity-30",
-              }}
-            />
+            <EnhancedCalendar selected={date} onSelect={onDateChange} />
           </PopoverContent>
         </Popover>
       </div>
@@ -102,7 +228,11 @@ export const PhotoUploadSection = ({
           placeholder="Cinema name"
           value={location}
           onChange={(e) => onLocationChange(e.target.value)}
-          className="h-14 p-4 bg-[#472326] rounded-lg text-[#c69193] font-['Plus_Jakarta_Sans',Helvetica] font-normal text-base leading-6 placeholder:text-[#c69193] border-none focus-visible:ring-0 focus-visible:ring-offset-0"
+          style={{ 
+            color: '#c69193',
+            backgroundColor: '#472326'
+          }}
+          className="h-14 p-4 bg-[#472326] rounded-lg !text-[#c69193] font-['Plus_Jakarta_Sans',Helvetica] font-normal text-base leading-6 placeholder:text-[#c69193] border-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:!text-[#c69193] focus:bg-[#472326] active:!text-[#c69193] [&:not(:placeholder-shown)]:!text-[#c69193]"
         />
       </div>
     </div>
