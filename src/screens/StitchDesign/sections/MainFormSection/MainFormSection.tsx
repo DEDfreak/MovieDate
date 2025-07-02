@@ -118,8 +118,9 @@ export const MainFormSection = ({
     setQuery(movie.title);
     setShowDropdown(false);
     
-    // Fetch detailed movie information if it's a movie
+    // Fetch detailed information based on content type
     if (movie.content_type === 'movie' && movie.id.startsWith('tt')) {
+      // Fetch movie details using OMDb API
       setLoadingDetails(true);
       try {
         const response = await fetch(`/api/movie-details?id=${encodeURIComponent(movie.id)}`);
@@ -128,13 +129,34 @@ export const MainFormSection = ({
           setMovieDetails(data.movie);
         } else {
           console.error('Failed to fetch movie details:', data.error);
+          setMovieDetails(movie); // Fallback to basic movie data
         }
       } catch (error) {
         console.error('Error fetching movie details:', error);
+        setMovieDetails(movie); // Fallback to basic movie data
+      } finally {
+        setLoadingDetails(false);
+      }
+    } else if (movie.content_type === 'tv_series' && movie.id.startsWith('tv_')) {
+      // Fetch TV series details using TMDb API
+      setLoadingDetails(true);
+      try {
+        const response = await fetch(`/api/tv-details?id=${encodeURIComponent(movie.id)}`);
+        const data = await response.json();
+        if (response.ok) {
+          setMovieDetails(data.series);
+        } else {
+          console.error('Failed to fetch TV series details:', data.error);
+          setMovieDetails(movie); // Fallback to basic series data
+        }
+      } catch (error) {
+        console.error('Error fetching TV series details:', error);
+        setMovieDetails(movie); // Fallback to basic series data
       } finally {
         setLoadingDetails(false);
       }
     } else {
+      // For content without specific ID format, use basic data
       setMovieDetails(movie);
     }
   };
@@ -450,14 +472,40 @@ export const MainFormSection = ({
                       {movieDetails.genre && (
                         <p><span className="font-semibold text-white">Genre:</span> {movieDetails.genre}</p>
                       )}
-                      {movieDetails.director && (
-                        <p><span className="font-semibold text-white">Director:</span> {movieDetails.director}</p>
+                      {selectedMovie.content_type === 'movie' ? (
+                        movieDetails.director && (
+                          <p><span className="font-semibold text-white">Director:</span> {movieDetails.director}</p>
+                        )
+                      ) : (
+                        movieDetails.creator && (
+                          <p><span className="font-semibold text-white">Creator:</span> {movieDetails.creator}</p>
+                        )
                       )}
                       {movieDetails.runtime && (
-                        <p><span className="font-semibold text-white">Runtime:</span> {movieDetails.runtime}</p>
+                        <p><span className="font-semibold text-white">
+                          {selectedMovie.content_type === 'movie' ? 'Runtime:' : 'Episode Runtime:'}
+                        </span> {movieDetails.runtime}</p>
                       )}
-                      {movieDetails.imdbRating && movieDetails.imdbRating !== 'N/A' && (
-                        <p><span className="font-semibold text-white">IMDb Rating:</span> {movieDetails.imdbRating}/10</p>
+                      {selectedMovie.content_type === 'movie' ? (
+                        movieDetails.imdbRating && movieDetails.imdbRating !== 'N/A' && (
+                          <p><span className="font-semibold text-white">IMDb Rating:</span> {movieDetails.imdbRating}/10</p>
+                        )
+                      ) : (
+                        movieDetails.tmdbRating && (
+                          <p><span className="font-semibold text-white">TMDb Rating:</span> {movieDetails.tmdbRating}/10</p>
+                        )
+                      )}
+                      {selectedMovie.content_type === 'tv_series' && movieDetails.numberOfSeasons && (
+                        <p><span className="font-semibold text-white">Seasons:</span> {movieDetails.numberOfSeasons}</p>
+                      )}
+                      {selectedMovie.content_type === 'tv_series' && movieDetails.numberOfEpisodes && (
+                        <p><span className="font-semibold text-white">Episodes:</span> {movieDetails.numberOfEpisodes}</p>
+                      )}
+                      {selectedMovie.content_type === 'tv_series' && movieDetails.status && (
+                        <p><span className="font-semibold text-white">Status:</span> {movieDetails.status}</p>
+                      )}
+                      {selectedMovie.content_type === 'tv_series' && movieDetails.networks && (
+                        <p><span className="font-semibold text-white">Network:</span> {movieDetails.networks}</p>
                       )}
                     </div>
                   </div>

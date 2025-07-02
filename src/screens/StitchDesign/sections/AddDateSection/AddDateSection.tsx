@@ -20,7 +20,7 @@ export const AddDateSection = (): JSX.Element => {
   ];
 
   return (
-    <header className="flex items-center justify-between px-10 py-3 border-b border-[#e5e8ea] w-full bg-[#FF00FF]">
+    <header className="flex items-center justify-between px-10 py-3 border-b border-[#48232f] w-full bg-[#221117]">
       {/* Logo and Brand */}
       <Link to="/" className="flex items-center gap-4">
         <div className="relative w-4 h-4">

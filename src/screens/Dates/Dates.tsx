@@ -4,6 +4,7 @@ import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { Progress } from "../../components/ui/progress";
 import { Film, Tv, Calendar, MapPin, Play, Star, Clock, ArrowRight } from "lucide-react";
+import { AddDateSection } from "../StitchDesign/sections/AddDateSection";
 
 interface MovieDate {
   id: number;
@@ -149,10 +150,15 @@ export const Dates = (): JSX.Element => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#211111] flex items-center justify-center">
-        <div className="flex items-center gap-3 text-[#c69193]">
-          <div className="animate-spin rounded-full h-8 w-8 border-2 border-[#c69193] border-t-transparent"></div>
-          <span className="text-lg">Loading your movie dates...</span>
+      <div className="flex flex-col bg-white min-h-screen">
+        <div className="flex flex-col w-full bg-[#211111] min-h-screen">
+          <AddDateSection />
+          <div className="flex-1 flex items-center justify-center">
+            <div className="flex items-center gap-3 text-[#c69193]">
+              <div className="animate-spin rounded-full h-8 w-8 border-2 border-[#c69193] border-t-transparent"></div>
+              <span className="text-lg">Loading your movie dates...</span>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -160,22 +166,27 @@ export const Dates = (): JSX.Element => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-[#211111] flex items-center justify-center">
-        <Card className="bg-[#472326] border-[#663335] max-w-md">
-          <CardContent className="p-6 text-center">
-            <div className="text-red-400 mb-4">
-              <Clock className="w-12 h-12 mx-auto mb-2" />
-              <h3 className="text-lg font-semibold">Error Loading Dates</h3>
-            </div>
-            <p className="text-[#c69193] mb-4">{error}</p>
-            <Button 
-              onClick={fetchDates}
-              className="bg-[#e82833] text-white hover:bg-[#c62229]"
-            >
-              Try Again
-            </Button>
-          </CardContent>
-        </Card>
+      <div className="flex flex-col bg-white min-h-screen">
+        <div className="flex flex-col w-full bg-[#211111] min-h-screen">
+          <AddDateSection />
+          <div className="flex-1 flex items-center justify-center px-4">
+            <Card className="bg-[#472326] border-[#663335] max-w-md">
+              <CardContent className="p-6 text-center">
+                <div className="text-red-400 mb-4">
+                  <Clock className="w-12 h-12 mx-auto mb-2" />
+                  <h3 className="text-lg font-semibold">Error Loading Dates</h3>
+                </div>
+                <p className="text-[#c69193] mb-4">{error}</p>
+                <Button 
+                  onClick={fetchDates}
+                  className="bg-[#e82833] text-white hover:bg-[#c62229]"
+                >
+                  Try Again
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
     );
   }
@@ -183,13 +194,17 @@ export const Dates = (): JSX.Element => {
   const groupedDates = groupLinkedDates(dates);
 
   return (
-    <div className="min-h-screen bg-[#211111] px-4 py-8">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">Our Movie Dates</h1>
-          <p className="text-[#c69193] text-lg">A timeline of our cinematic journey together</p>
-        </div>
+    <div className="flex flex-col bg-white min-h-screen">
+      <div className="flex flex-col w-full bg-[#211111] min-h-screen">
+        <AddDateSection />
+        
+        <div className="flex justify-center px-4 lg:px-40 py-8 w-full">
+          <div className="flex flex-col max-w-4xl w-full">
+            {/* Header */}
+            <div className="text-center mb-8">
+              <h1 className="text-4xl font-bold text-white mb-2">Our Movie Dates</h1>
+              <p className="text-[#c69193] text-lg">A timeline of our cinematic journey together</p>
+            </div>
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
@@ -386,6 +401,8 @@ export const Dates = (): JSX.Element => {
             ))}
           </div>
         )}
+          </div>
+        </div>
       </div>
     </div>
   );
