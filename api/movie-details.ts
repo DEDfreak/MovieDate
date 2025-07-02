@@ -1,5 +1,4 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import fetch from 'node-fetch';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Enable CORS for frontend requests
@@ -33,18 +32,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       apiUrl = `https://imdb.iamidiotareyoutoo.com/photo/${encodeURIComponent(id)}`;
     }
 
+    // Use native fetch with AbortController for timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
     const apiRes = await fetch(apiUrl, {
       method: 'GET',
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
         'Accept': 'application/json',
       },
-      // @ts-ignore
-      timeout: 10000,
+      signal: controller.signal,
     });
 
+    clearTimeout(timeoutId);
+
     if (!apiRes.ok) {
-      throw new Error(`API responded with status: ${apiRes.status}`);
+      throw new Error(`API responded with status: ${apiRes.status} ${apiRes.statusText}`);
     }
 
     const data: any = await apiRes.json();
@@ -95,9 +99,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
   } catch (error: any) {
+    console.error('Movie details API error:', error);
+    
+    // Handle specific error types
+    if (error.name === 'AbortError') {
+      return res.status(408).json({ 
+        error: 'Request timeout', 
+        message: 'The movie details request timed out. Please try again.',
+        imdbID: id
+      });
+    }
+
     return res.status(500).json({ 
       error: 'Failed to fetch movie details', 
-      details: error.message,
+      message: error.message || 'An unexpected error occurred',
       imdbID: id
     });
   }
