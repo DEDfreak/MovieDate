@@ -1,62 +1,44 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-
-// In-memory storage for wishlist items
-let wishlistItems: any[] = [];
-let wishlistIdCounter = 1;
+import sql, { initSchema } from './_db';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
+  if (req.method === 'OPTIONS') return res.status(200).end();
+
+  await initSchema();
 
   try {
+    // ── GET ──────────────────────────────────────────────────────────────────
     if (req.method === 'GET') {
-      // Get wishlist items with optional filtering
       const { user_id, priority, is_shared } = req.query;
-      
-      let filteredItems = [...wishlistItems];
-      
+
+      let rows = await sql`SELECT * FROM wishlist_items ORDER BY added_date DESC`;
+
       if (user_id) {
-        filteredItems = filteredItems.filter(item => 
-          item.user_id === user_id || item.is_shared === true
-        );
+        rows = rows.filter((r: any) => r.user_id === user_id || r.is_shared === true);
       }
-      
       if (priority) {
-        filteredItems = filteredItems.filter(item => 
-          item.priority === priority
-        );
+        rows = rows.filter((r: any) => r.priority === priority);
       }
-      
       if (is_shared !== undefined) {
-        const isShared = is_shared === 'true';
-        filteredItems = filteredItems.filter(item => 
-          item.is_shared === isShared
-        );
+        const shared = is_shared === 'true';
+        rows = rows.filter((r: any) => r.is_shared === shared);
       }
 
-      // Sort by priority (must_watch > interested > maybe) and then by added_date
-      const priorityOrder = { 'must_watch': 3, 'interested': 2, 'maybe': 1 };
-      filteredItems.sort((a, b) => {
-        const priorityDiff = (priorityOrder[b.priority as keyof typeof priorityOrder] || 0) - 
-                           (priorityOrder[a.priority as keyof typeof priorityOrder] || 0);
-        if (priorityDiff !== 0) return priorityDiff;
-        return new Date(b.added_date).getTime() - new Date(a.added_date).getTime();
+      const priorityOrder: Record<string, number> = { must_watch: 3, interested: 2, maybe: 1 };
+      rows.sort((a: any, b: any) => {
+        const diff = (priorityOrder[b.priority] || 0) - (priorityOrder[a.priority] || 0);
+        return diff !== 0 ? diff : new Date(b.added_date).getTime() - new Date(a.added_date).getTime();
       });
 
-      return res.status(200).json({
-        items: filteredItems,
-        total: filteredItems.length
-      });
+      return res.status(200).json({ items: rows, total: rows.length });
     }
 
+    // ── POST ─────────────────────────────────────────────────────────────────
     if (req.method === 'POST') {
-      // Add movie to wishlist
       const {
         movie_id,
         movie_title,
@@ -65,126 +47,70 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         movie_genre,
         priority = 'interested',
         is_shared = false,
-        user_id = 'user1'
+        user_id = 'user1',
       } = req.body;
 
-      // Basic validation
       if (!movie_id || !movie_title) {
-        return res.status(400).json({
-          error: 'Missing required fields',
-          message: 'movie_id and movie_title are required'
-        });
+        return res.status(400).json({ error: 'movie_id and movie_title are required' });
       }
 
-      // Check if movie already exists in wishlist
-      const existingItem = wishlistItems.find(item => 
-        item.movie_id === movie_id && 
-        (item.user_id === user_id || item.is_shared)
-      );
-
-      if (existingItem) {
-        return res.status(409).json({
-          error: 'Movie already in wishlist',
-          message: 'This movie is already in the wishlist',
-          item: existingItem
-        });
+      const [existing] = await sql`
+        SELECT id FROM wishlist_items
+        WHERE movie_id = ${movie_id} AND (user_id = ${user_id} OR is_shared = true)
+        LIMIT 1
+      `;
+      if (existing) {
+        return res.status(409).json({ error: 'Movie already in wishlist', item: existing });
       }
 
-      // Create new wishlist item
-      const newItem = {
-        id: wishlistIdCounter++,
-        movie_id,
-        movie_title,
-        movie_year,
-        movie_poster,
-        movie_genre,
-        priority, // must_watch, interested, maybe
-        is_shared,
-        user_id,
-        added_date: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
+      const [newItem] = await sql`
+        INSERT INTO wishlist_items (movie_id, movie_title, movie_year, movie_poster, movie_genre, priority, is_shared, user_id)
+        VALUES (${movie_id}, ${movie_title}, ${movie_year ?? null}, ${movie_poster ?? null}, ${movie_genre ?? null}, ${priority}, ${is_shared}, ${user_id})
+        RETURNING *
+      `;
 
-      wishlistItems.push(newItem);
-
-      return res.status(201).json({
-        message: 'Movie added to wishlist successfully',
-        item: newItem
-      });
+      return res.status(201).json({ message: 'Movie added to wishlist successfully', item: newItem });
     }
 
+    // ── PUT ──────────────────────────────────────────────────────────────────
     if (req.method === 'PUT') {
-      // Update wishlist item (e.g., change priority)
       const { id } = req.query;
-      
-      if (!id) {
-        return res.status(400).json({
-          error: 'Missing item ID',
-          message: 'Please provide a wishlist item ID to update'
-        });
-      }
+      if (!id) return res.status(400).json({ error: 'Missing item ID' });
 
-      const itemIndex = wishlistItems.findIndex(item => item.id === parseInt(id as string));
-      
-      if (itemIndex === -1) {
-        return res.status(404).json({
-          error: 'Item not found',
-          message: 'No wishlist item found with the provided ID'
-        });
-      }
+      const existing = await sql`SELECT id FROM wishlist_items WHERE id = ${parseInt(id as string)}`;
+      if (!existing.length) return res.status(404).json({ error: 'Item not found' });
 
-      // Update the item with new data
-      const updatedItem = {
-        ...wishlistItems[itemIndex],
-        ...req.body,
-        updated_at: new Date().toISOString()
-      };
+      const body = req.body;
+      const [updated] = await sql`
+        UPDATE wishlist_items SET
+          priority   = COALESCE(${body.priority    ?? null}, priority),
+          is_shared  = COALESCE(${body.is_shared   != null ? body.is_shared   : null}, is_shared),
+          movie_genre = COALESCE(${body.movie_genre ?? null}, movie_genre),
+          updated_at = NOW()
+        WHERE id = ${parseInt(id as string)}
+        RETURNING *
+      `;
 
-      wishlistItems[itemIndex] = updatedItem;
-
-      return res.status(200).json({
-        message: 'Wishlist item updated successfully',
-        item: updatedItem
-      });
+      return res.status(200).json({ message: 'Wishlist item updated successfully', item: updated });
     }
 
+    // ── DELETE ───────────────────────────────────────────────────────────────
     if (req.method === 'DELETE') {
-      // Remove movie from wishlist
       const { id } = req.query;
-      
-      if (!id) {
-        return res.status(400).json({
-          error: 'Missing item ID',
-          message: 'Please provide a wishlist item ID to delete'
-        });
-      }
+      if (!id) return res.status(400).json({ error: 'Missing item ID' });
 
-      const itemIndex = wishlistItems.findIndex(item => item.id === parseInt(id as string));
-      
-      if (itemIndex === -1) {
-        return res.status(404).json({
-          error: 'Item not found',
-          message: 'No wishlist item found with the provided ID'
-        });
-      }
+      const existing = await sql`SELECT * FROM wishlist_items WHERE id = ${parseInt(id as string)}`;
+      if (!existing.length) return res.status(404).json({ error: 'Item not found' });
 
-      const deletedItem = wishlistItems.splice(itemIndex, 1)[0];
+      await sql`DELETE FROM wishlist_items WHERE id = ${parseInt(id as string)}`;
 
-      return res.status(200).json({
-        message: 'Movie removed from wishlist successfully',
-        item: deletedItem
-      });
+      return res.status(200).json({ message: 'Movie removed from wishlist successfully', item: existing[0] });
     }
 
-    return res.status(405).json({
-      error: 'Method not allowed',
-      message: 'Only GET, POST, PUT, and DELETE methods are supported'
-    });
+    return res.status(405).json({ error: 'Method not allowed' });
 
   } catch (error: any) {
-    return res.status(500).json({
-      error: 'Internal server error',
-      details: error.message
-    });
+    console.error('wishlist error:', error);
+    return res.status(500).json({ error: 'Internal server error', details: error.message });
   }
-} 
+}
