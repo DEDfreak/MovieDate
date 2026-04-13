@@ -63,6 +63,15 @@ export const MainFormSection = ({
   const [incompleteDates, setIncompleteDates] = useState<IncompleteDate[]>([]);
   const [loadingIncomplete, setLoadingIncomplete] = useState(false);
 
+  // Auto-switch watch status based on progress
+  useEffect(() => {
+    if (watchProgress < 100 && watchStatus === 'completed') {
+      onWatchStatusChange('partial');
+    } else if (watchProgress === 100 && watchStatus === 'partial') {
+      onWatchStatusChange('completed');
+    }
+  }, [watchProgress]);
+
   // Debounced search effect
   useEffect(() => {
     if (query.trim().length === 0) {
