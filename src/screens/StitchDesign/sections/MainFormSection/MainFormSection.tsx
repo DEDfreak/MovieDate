@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { apiFetch } from "../../../../lib/auth";
 import { Card, CardContent } from "../../../../components/ui/card";
 import { Input } from "../../../../components/ui/input";
 import { Label } from "../../../../components/ui/label";
@@ -6,7 +7,7 @@ import { Button } from "../../../../components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../../components/ui/select";
 import { Badge } from "../../../../components/ui/badge";
 import { Progress } from "../../../../components/ui/progress";
-import { Link, Play, Film, Tv, Clock, ArrowRight } from "lucide-react";
+import { Link, Film, Tv, Clock, ArrowRight } from "lucide-react";
 
 interface MovieData {
   id: string;
@@ -58,7 +59,6 @@ export const MainFormSection = ({
   const [showDropdown, setShowDropdown] = useState(false);
   const [movieDetails, setMovieDetails] = useState<any>(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
-  const [showFullPlot, setShowFullPlot] = useState(false);
   const [showLinkOptions, setShowLinkOptions] = useState(false);
   const [incompleteDates, setIncompleteDates] = useState<IncompleteDate[]>([]);
   const [loadingIncomplete, setLoadingIncomplete] = useState(false);
@@ -83,7 +83,7 @@ export const MainFormSection = ({
     const timeoutId = setTimeout(async () => {
       setLoading(true);
       try {
-        const response = await fetch(`/api/content-search?q=${encodeURIComponent(query)}&type=${contentType}`);
+        const response = await apiFetch(`/api/content-search?q=${encodeURIComponent(query)}&type=${contentType}`);
         const data = await response.json();
         if (response.ok) {
           setResults(data.results || []);
@@ -110,7 +110,7 @@ export const MainFormSection = ({
   const loadIncompleteDates = async () => {
     setLoadingIncomplete(true);
     try {
-      const response = await fetch('/api/incomplete-dates');
+      const response = await apiFetch('/api/incomplete-dates');
       const data = await response.json();
       if (response.ok) {
         setIncompleteDates(data.incomplete_dates || []);
@@ -132,7 +132,7 @@ export const MainFormSection = ({
       // Fetch movie details using OMDb API
       setLoadingDetails(true);
       try {
-        const response = await fetch(`/api/movie-details?id=${encodeURIComponent(movie.id)}`);
+        const response = await apiFetch(`/api/movie-details?id=${encodeURIComponent(movie.id)}`);
         const data = await response.json();
         if (response.ok) {
           setMovieDetails(data.movie);
@@ -150,7 +150,7 @@ export const MainFormSection = ({
       // Fetch TV series details using TMDb API
       setLoadingDetails(true);
       try {
-        const response = await fetch(`/api/tv-details?id=${encodeURIComponent(movie.id)}`);
+        const response = await apiFetch(`/api/tv-details?id=${encodeURIComponent(movie.id)}`);
         const data = await response.json();
         if (response.ok) {
           // Merge detailed data with original search data to preserve poster and other info
@@ -354,7 +354,7 @@ export const MainFormSection = ({
         {/* Dropdown */}
         {showDropdown && results.length > 0 && !loading && (
           <div className="absolute top-20 left-0 w-full bg-[#472326] rounded-lg shadow-lg z-10 max-h-60 overflow-y-auto border border-[#663335]">
-            {results.map((item, idx) => (
+            {results.map((item) => (
               <div 
                 key={item.id} 
                 className="px-4 py-3 text-[#c69193] hover:bg-[#663335] cursor-pointer border-b border-[#663335] last:border-b-0 transition-colors"

@@ -1,11 +1,8 @@
 import React, { useState } from "react";
+import { apiFetch } from "../../lib/auth";
 import { Button } from "../../components/ui/button";
-import { Card, CardContent } from "../../components/ui/card";
-import { Label } from "../../components/ui/label";
-import { Textarea } from "../../components/ui/textarea";
 import { AddDateSection } from "./sections/AddDateSection";
 import { MainFormSection } from "./sections/MainFormSection";
-import { MovieSelectionSection } from "./sections/MovieSelectionSection";
 import { PhotoUploadSection } from "./sections/PhotoUploadSection";
 import { RatingsSection } from "./sections/RatingsSection";
 import { ReviewsSection } from "./sections/ReviewsSection";
@@ -112,7 +109,7 @@ export const StitchDesign = (): JSX.Element => {
         parent_date_id: formData.parentDateId
       };
 
-      const response = await fetch('/api/movie-dates', {
+      const response = await apiFetch('/api/movie-dates', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

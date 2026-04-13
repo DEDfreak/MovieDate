@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { apiFetch } from "../../lib/auth";
 import { AddDateSection } from "../StitchDesign/sections/AddDateSection";
 import { Card, CardContent } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
@@ -57,7 +58,7 @@ export const Profile = (): JSX.Element => {
   const fetchStats = async () => {
     setLoadingStats(true);
     try {
-      const res = await fetch("/api/movie-dates");
+      const res = await apiFetch("/api/movie-dates");
       const data = await res.json();
       const dates: any[] = data.dates || [];
 

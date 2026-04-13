@@ -5,6 +5,7 @@ import { Button } from "../../components/ui/button";
 import { Progress } from "../../components/ui/progress";
 import { Film, Tv, Calendar, MapPin, Star, Clock, X, Image, Pencil, Trash2, Check } from "lucide-react";
 import { AddDateSection } from "../StitchDesign/sections/AddDateSection";
+import { apiFetch } from "../../lib/auth";
 
 interface MovieDate {
   id: number;
@@ -460,7 +461,7 @@ export const Dates = (): JSX.Element => {
   const fetchDates = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/movie-dates?linked=true');
+      const response = await apiFetch('/api/movie-dates?linked=true');
       const data = await response.json();
       if (response.ok) {
         setDates(data.dates || []);
@@ -475,13 +476,13 @@ export const Dates = (): JSX.Element => {
   };
 
   const handleSave = async (id: number, updates: Partial<MovieDate>) => {
-    await fetch(`/api/movie-dates?id=${id}`, {
+    await apiFetch(`/api/movie-dates?id=${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updates),
     });
     // Refresh list and update the open modal's data
-    const res = await fetch('/api/movie-dates?linked=true');
+    const res = await apiFetch('/api/movie-dates?linked=true');
     const data = await res.json();
     if (res.ok) {
       const refreshed: MovieDate[] = data.dates || [];
@@ -491,7 +492,7 @@ export const Dates = (): JSX.Element => {
   };
 
   const handleDelete = async (id: number) => {
-    await fetch(`/api/movie-dates?id=${id}`, { method: 'DELETE' });
+    await apiFetch(`/api/movie-dates?id=${id}`, { method: 'DELETE' });
     setDates(prev => prev.filter(d => d.id !== id));
   };
 

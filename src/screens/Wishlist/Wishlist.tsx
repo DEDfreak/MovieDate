@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
+import { apiFetch } from "../../lib/auth";
 import { AddDateSection } from "../StitchDesign/sections/AddDateSection";
 import { Card, CardContent } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
@@ -57,7 +58,7 @@ function AddWishlistModal({
     const t = setTimeout(async () => {
       setSearching(true);
       try {
-        const res = await fetch(`/api/content-search?q=${encodeURIComponent(query)}&type=all`);
+        const res = await apiFetch(`/api/content-search?q=${encodeURIComponent(query)}&type=all`);
         const data = await res.json();
         setResults(data.results || []);
       } finally {
@@ -211,7 +212,7 @@ export const Wishlist = (): JSX.Element => {
   const fetchItems = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/wishlist');
+      const res = await apiFetch('/api/wishlist');
       const data = await res.json();
       if (res.ok) setItems(data.items || []);
     } finally {
@@ -220,7 +221,7 @@ export const Wishlist = (): JSX.Element => {
   };
 
   const handleAdd = async (item: Omit<WishlistItem, 'id' | 'user_id' | 'added_date'>) => {
-    const res = await fetch('/api/wishlist', {
+    const res = await apiFetch('/api/wishlist', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(item),
@@ -236,7 +237,7 @@ export const Wishlist = (): JSX.Element => {
 
   const handleSave = async (id: number) => {
     setSavingId(id);
-    await fetch(`/api/wishlist?id=${id}`, {
+    await apiFetch(`/api/wishlist?id=${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ priority: editPriority }),
@@ -248,7 +249,7 @@ export const Wishlist = (): JSX.Element => {
 
   const handleDelete = async (id: number) => {
     setDeletingId(id);
-    await fetch(`/api/wishlist?id=${id}`, { method: 'DELETE' });
+    await apiFetch(`/api/wishlist?id=${id}`, { method: 'DELETE' });
     setItems(prev => prev.filter(i => i.id !== id));
     setDeletingId(null);
     setConfirmDeleteId(null);
