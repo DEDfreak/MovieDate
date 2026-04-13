@@ -51,6 +51,7 @@ export const StitchDesign = (): JSX.Element => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState<string>("");
+  const [formKey, setFormKey] = useState(0);
 
   const updateFormData = (updates: Partial<FormData>) => {
     setFormData(prev => ({ ...prev, ...updates }));
@@ -137,6 +138,7 @@ export const StitchDesign = (): JSX.Element => {
           watchProgress: 100,
           parentDateId: undefined,
         });
+        setFormKey(k => k + 1);
         
         // Clear success message after 3 seconds
         setTimeout(() => setSubmitMessage(""), 3000);
@@ -167,7 +169,7 @@ export const StitchDesign = (): JSX.Element => {
                 </div>
               </div>
 
-              <MainFormSection 
+              <MainFormSection key={formKey}
                 selectedMovie={formData.movie}
                 onMovieSelect={(movie) => updateFormData({ movie })}
                 watchStatus={formData.watchStatus}
