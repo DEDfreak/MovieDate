@@ -1,4 +1,3 @@
-import React from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { StitchDesign } from "./screens/StitchDesign/StitchDesign";
 import { Home } from "./screens/Home/Home";

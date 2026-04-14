@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "../../components/ui/card";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
@@ -455,6 +456,7 @@ export const Dates = (): JSX.Element => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>("");
   const [selectedDate, setSelectedDate] = useState<MovieDate | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => { fetchDates(); }, []);
 
@@ -520,10 +522,12 @@ export const Dates = (): JSX.Element => {
     new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
   const getAverageRating = (r1?: number, r2?: number) => {
-    if (r1 == null && r2 == null) return null;
-    if (r1 == null) return r2;
-    if (r2 == null) return r1;
-    return ((r1 + r2) / 2).toFixed(1);
+    const n1 = r1 != null ? Number(r1) : null;
+    const n2 = r2 != null ? Number(r2) : null;
+    if (n1 === null && n2 === null) return null;
+    if (n1 === null) return n2!.toFixed(1);
+    if (n2 === null) return n1.toFixed(1);
+    return ((n1 + n2) / 2).toFixed(1);
   };
 
   const groupLinkedDates = (dates: MovieDate[]) => {
@@ -609,9 +613,17 @@ export const Dates = (): JSX.Element => {
 
           <div className="flex justify-center px-4 lg:px-40 py-8 w-full">
             <div className="flex flex-col max-w-4xl w-full">
-              <div className="text-center mb-8">
-                <h1 className="text-4xl font-bold text-white mb-2">Our Movie Dates</h1>
-                <p className="text-[#c69193] text-lg">A timeline of our cinematic journey together</p>
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h1 className="text-4xl font-bold text-white mb-2">Our Movie Dates</h1>
+                  <p className="text-[#c69193] text-lg">A timeline of our cinematic journey together</p>
+                </div>
+                <Button
+                  onClick={() => navigate('/add-date')}
+                  className="flex items-center gap-2 bg-[#e82833] hover:bg-[#c62229] text-white flex-shrink-0"
+                >
+                  + Add New Date
+                </Button>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
@@ -636,7 +648,7 @@ export const Dates = (): JSX.Element => {
                     <Calendar className="w-16 h-16 text-[#a08082] mx-auto mb-4" />
                     <h3 className="text-xl font-semibold text-white mb-2">No movie dates yet!</h3>
                     <p className="text-[#c69193] mb-6">Start your cinematic journey by adding your first movie date.</p>
-                    <Button onClick={() => window.location.href = '/add-date'} className="bg-[#e82833] text-white hover:bg-[#c62229]">
+                    <Button onClick={() => navigate('/add-date')} className="bg-[#e82833] text-white hover:bg-[#c62229]">
                       Add Your First Date
                     </Button>
                   </CardContent>

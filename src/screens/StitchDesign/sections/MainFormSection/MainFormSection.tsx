@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { apiFetch } from "../../../../lib/auth";
 import { Card, CardContent } from "../../../../components/ui/card";
 import { Input } from "../../../../components/ui/input";
@@ -62,6 +62,11 @@ export const MainFormSection = ({
   const [showLinkOptions, setShowLinkOptions] = useState(false);
   const [incompleteDates, setIncompleteDates] = useState<IncompleteDate[]>([]);
   const [loadingIncomplete, setLoadingIncomplete] = useState(false);
+  const [showWishlistPicker, setShowWishlistPicker] = useState(false);
+  const [wishlistItems, setWishlistItems] = useState<any[]>([]);
+  const [loadingWishlist, setLoadingWishlist] = useState(false);
+  // Prevents the debounced search from reopening the dropdown after a selection
+  const skipSearch = useRef(false);
 
   // Auto-switch watch status based on progress
   useEffect(() => {
@@ -77,6 +82,12 @@ export const MainFormSection = ({
     if (query.trim().length === 0) {
       setResults([]);
       setShowDropdown(false);
+      return;
+    }
+
+    // Skip the first fire after a selection to prevent the dropdown reopening
+    if (skipSearch.current) {
+      skipSearch.current = false;
       return;
     }
 
@@ -122,10 +133,26 @@ export const MainFormSection = ({
     }
   };
 
+  const loadWishlist = async () => {
+    setLoadingWishlist(true);
+    try {
+      const res = await apiFetch('/api/wishlist');
+      const data = await res.json();
+      if (res.ok) setWishlistItems(data.items || []);
+    } catch {
+      // ignore
+    } finally {
+      setLoadingWishlist(false);
+    }
+  };
+
   const handleMovieSelect = async (movie: MovieData) => {
+    skipSearch.current = true;
     onMovieSelect(movie);
     setQuery(movie.title);
+    setResults([]);
     setShowDropdown(false);
+    setShowWishlistPicker(false);
     
     // Fetch detailed information based on content type
     if (movie.content_type === 'movie' && movie.id.startsWith('tt')) {
@@ -320,19 +347,75 @@ export const MainFormSection = ({
 
       {/* Search Section */}
       <div className="flex flex-col min-w-40 items-start w-full relative">
-        <div className="w-full mb-2">
-          <Label
-            htmlFor="movie-search"
-            className="font-medium text-white text-base leading-6 font-['Plus_Jakarta_Sans',Helvetica]"
+        <div className="w-full mb-2 flex items-center justify-between">
+          <div>
+            <Label
+              htmlFor="movie-search"
+              className="font-medium text-white text-base leading-6 font-['Plus_Jakarta_Sans',Helvetica]"
+            >
+              {parentDateId ? 'Continuing' : 'Search for'} {contentType === 'all' ? 'content' : contentType === 'movie' ? 'a movie' : 'a TV series'}
+            </Label>
+            {parentDateId && (
+              <Badge className="ml-2 bg-blue-900/30 text-blue-400 border-blue-800">
+                Linked to previous date
+              </Badge>
+            )}
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              if (!showWishlistPicker) loadWishlist();
+              setShowWishlistPicker(v => !v);
+              setShowDropdown(false);
+            }}
+            className="bg-[#472326] text-[#c69193] border-[#663335] hover:bg-[#663335] hover:text-white flex items-center gap-1.5 text-xs"
           >
-            {parentDateId ? 'Continuing' : 'Search for'} {contentType === 'all' ? 'content' : contentType === 'movie' ? 'a movie' : 'a TV series'}
-          </Label>
-          {parentDateId && (
-            <Badge className="ml-2 bg-blue-900/30 text-blue-400 border-blue-800">
-              Linked to previous date
-            </Badge>
-          )}
+            ★ From Wishlist
+          </Button>
         </div>
+
+        {/* Wishlist Picker */}
+        {showWishlistPicker && (
+          <div className="w-full mb-3 bg-[#472326] border border-[#663335] rounded-lg max-h-56 overflow-y-auto">
+            {loadingWishlist ? (
+              <div className="flex items-center gap-2 px-4 py-3 text-[#c69193] text-sm">
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-[#c69193] border-t-transparent" />
+                Loading wishlist…
+              </div>
+            ) : wishlistItems.length === 0 ? (
+              <div className="px-4 py-3 text-[#a08082] text-sm">Your wishlist is empty.</div>
+            ) : (
+              wishlistItems.map((item: any) => (
+                <div
+                  key={item.id}
+                  onClick={() => handleMovieSelect({
+                    id: item.movie_id,
+                    title: item.movie_title,
+                    year: item.movie_year || '',
+                    poster: item.movie_poster,
+                    content_type: item.movie_id.startsWith('tt') ? 'movie' : 'tv_series',
+                    genre: item.movie_genre,
+                  })}
+                  className="flex items-center gap-3 px-4 py-3 hover:bg-[#663335] cursor-pointer border-b border-[#663335] last:border-b-0 transition-colors"
+                >
+                  {item.movie_poster ? (
+                    <img src={item.movie_poster} alt={item.movie_title} className="w-8 h-11 object-cover rounded flex-shrink-0" onError={e => { e.currentTarget.style.display = 'none'; }} />
+                  ) : (
+                    <div className="w-8 h-11 bg-[#3d1f22] rounded flex items-center justify-center flex-shrink-0">
+                      {item.movie_id.startsWith('tt') ? <Film className="w-4 h-4 text-[#663335]" /> : <Tv className="w-4 h-4 text-[#663335]" />}
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="text-white text-sm font-medium truncate">{item.movie_title} {item.movie_year && `(${item.movie_year})`}</div>
+                    {item.movie_genre && <div className="text-[#a08082] text-xs truncate">{item.movie_genre}</div>}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
 
         <div className="relative w-full">
           <Input
@@ -380,7 +463,7 @@ export const MainFormSection = ({
           </div>
         )}
         
-        {query && !loading && results.length === 0 && !showDropdown && (
+        {query && !loading && results.length === 0 && !showDropdown && !selectedMovie && (
           <div className="absolute top-20 left-0 w-full bg-[#472326] rounded-lg shadow-lg z-10 px-4 py-3 border border-[#663335]">
             <p className="text-[#c69193] text-sm">No {contentType === 'all' ? 'content' : contentType === 'movie' ? 'movies' : 'TV series'} found for "{query}"</p>
           </div>

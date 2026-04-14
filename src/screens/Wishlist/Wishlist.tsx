@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { apiFetch } from "../../lib/auth";
 import { AddDateSection } from "../StitchDesign/sections/AddDateSection";
 import { Card, CardContent } from "../../components/ui/card";
