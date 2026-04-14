@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { apiFetch } from "../../lib/auth";
+import { apiFetch, getUser } from "../../lib/auth";
 import { AddDateSection } from "../StitchDesign/sections/AddDateSection";
 import { Card, CardContent } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
@@ -39,6 +39,7 @@ function loadProfile(): ProfileData {
 }
 
 export const Profile = (): JSX.Element => {
+  const authUser = getUser();
   const [profile, setProfile] = useState<ProfileData>(loadProfile);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<ProfileData>(profile);
@@ -154,6 +155,13 @@ export const Profile = (): JSX.Element => {
                         <h2 className="text-xl font-bold text-white">
                           {profile.herName} &amp; {profile.hisName}
                         </h2>
+                      )}
+                      {authUser && (
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-white text-sm font-medium">{authUser.display_name}</span>
+                          <span className="text-[#663335] text-xs">·</span>
+                          <span className="text-[#a08082] text-xs">@{authUser.username}</span>
+                        </div>
                       )}
                       <p className="text-[#a08082] text-sm mt-0.5">
                         Cinema couple · Since {editing ? (
